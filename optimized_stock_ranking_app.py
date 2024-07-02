@@ -19,7 +19,7 @@ def fetch_data(ticker):
         'returnOnEquity': info.get('returnOnEquity', 0),
         'returnOnAssets': info.get('returnOnAssets', 0),
         'debtToEquity': info.get('debtToEquity', 0),
-        'description': info.get('longBusinessSummary', 'No description available')
+        'longBusinessSummary': info.get('longBusinessSummary', 'No description available')
     }
 
 # Define a function to fetch data for all S&P 500 stocks
@@ -48,7 +48,7 @@ for ticker in tickers:
         info['returnOnEquity'],
         info['returnOnAssets'],
         info['debtToEquity'],
-        info['description']
+        info['longBusinessSummary']
     ])
 
 # Convert the data into a DataFrame
@@ -115,9 +115,9 @@ selected_sector = st.selectbox("Select Sector", options=['All'] + list(df['Secto
 if selected_sector != 'All':
     df = df[df['Sector'] == selected_sector]
 
-# Display the DataFrame with clickable company names
+# Display the DataFrame
 st.write("### Stock Data")
-selected_row = st.dataframe(df.style.format({
+st.dataframe(df.style.format({
     'Composite Rank': '{:,.0f}',
     'Value Rank': '{:,.0f}',
     'Quality Rank': '{:,.0f}',
@@ -125,18 +125,15 @@ selected_row = st.dataframe(df.style.format({
     'Volatility Rank': '{:,.0f}'
 }), use_container_width=True)
 
-# Add clickable links for company profiles
-for idx, row in df.iterrows():
-    st.write(f"[{row['Name']}]({row['Description']})")  # Displaying clickable name with description
-
-# Display the DataFrame
-st.write(df)
+# Add a selection box for company names
+selected_company = st.selectbox("Select a company to view profile", df['Name'].tolist())
 
 # Display company profile
-if selected_row:
-    selected_ticker = selected_row['Ticker'].values[0]
-    selected_description = df[df['Ticker'] == selected_ticker]['Description'].values[0]
+if selected_company:
+    selected_data = df[df['Name'] == selected_company]
+    description = selected_data['Description'].values[0]
+    sector = selected_data['Sector'].values[0]
     st.write(f"### Company Profile")
-    st.write(f"**Company Name:** {selected_row['Name'].values[0]}")
-    st.write(f"**Sector:** {selected_row['Sector'].values[0]}")
-    st.write(f"**Description:** {selected_description}")
+    st.write(f"**Company Name:** {selected_company}")
+    st.write(f"**Sector:** {sector}")
+    st.write(f"**Description:** {description}")
