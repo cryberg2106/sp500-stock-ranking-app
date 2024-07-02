@@ -18,8 +18,7 @@ def fetch_data(ticker):
         'priceToSalesTrailing12Months': info.get('priceToSalesTrailing12Months', 0),
         'returnOnEquity': info.get('returnOnEquity', 0),
         'returnOnAssets': info.get('returnOnAssets', 0),
-        'debtToEquity': info.get('debtToEquity', 0),
-        'longBusinessSummary': info.get('longBusinessSummary', 'No description available')
+        'debtToEquity': info.get('debtToEquity', 0)
     }
 
 # Define a function to fetch data for all S&P 500 stocks
@@ -47,13 +46,12 @@ for ticker in tickers:
         info['priceToSalesTrailing12Months'],
         info['returnOnEquity'],
         info['returnOnAssets'],
-        info['debtToEquity'],
-        info['longBusinessSummary']
+        info['debtToEquity']
     ])
 
 # Convert the data into a DataFrame
 df = pd.DataFrame(data, columns=[
-    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity', 'Business Profile'
+    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity'
 ])
 
 # Normalize metrics
@@ -88,7 +86,7 @@ df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
 ])
 
 # Drop unnecessary columns
-df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Rank Percentage', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Business Profile']]
+df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Rank Percentage', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank']]
 
 # Reset the index to avoid an unnamed index column
 df.reset_index(drop=True, inplace=True)
@@ -125,8 +123,8 @@ st.dataframe(df.sort_values(by='Composite Rank', ascending=True).style.format({
     'Volatility Rank': '{:,.0f}'
 }), use_container_width=True)
 
-# Add a selection box for company names
-selected_company = st.selectbox("Select a company to view profile", df['Name'].tolist())
+# Display company profile based on click event
+selected_company = st.selectbox("Click on a company name to view its profile", df['Name'].tolist())
 
 # Display company profile
 if selected_company:
