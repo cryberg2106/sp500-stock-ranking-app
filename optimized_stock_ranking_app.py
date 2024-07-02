@@ -19,8 +19,7 @@ def fetch_data(ticker):
         'returnOnEquity': info.get('returnOnEquity', 0),
         'returnOnAssets': info.get('returnOnAssets', 0),
         'debtToEquity': info.get('debtToEquity', 0),
-        'description': info.get('longBusinessSummary', 'N/A'),
-        'sector': info.get('sector', 'N/A')
+        'description': info.get('longBusinessSummary', 'N/A')
     }
 
 # Define a function to fetch data for all S&P 500 stocks
@@ -114,14 +113,14 @@ if selected_sector != 'All':
     df = df[df['Sector'] == selected_sector]
 
 # Display the DataFrame with clickable links
-def create_clickable_link(ticker, name, description):
-    link = f'<a href="#" onclick="alert(\'{description}\')">{ticker} - {name}</a>'
+def create_clickable_link(row):
+    link = f'<a href="#" onclick="alert(\'{row["Description"]}\')">{row["Ticker"]} - {row["Name"]}</a>'
     return link
 
-df['Ticker - Name'] = df.apply(lambda row: create_clickable_link(row['Ticker'], row['Name'], row['Description']), axis=1)
+df['Ticker - Name'] = df.apply(create_clickable_link, axis=1)
 
 # Drop unnecessary columns
 df = df[['Composite Rank', 'Ticker - Name', 'Sector', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage']]
 
 # Display the DataFrame
-st.write(df.to_html(escape=False), unsafe_allow_html=True)
+st.write(df.to_html(escape=False, index=False), unsafe_allow_html=True)
