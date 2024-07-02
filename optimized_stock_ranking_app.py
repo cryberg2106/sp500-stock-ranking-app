@@ -18,7 +18,8 @@ def fetch_data(ticker):
         'priceToSalesTrailing12Months': info.get('priceToSalesTrailing12Months', 0),
         'returnOnEquity': info.get('returnOnEquity', 0),
         'returnOnAssets': info.get('returnOnAssets', 0),
-        'debtToEquity': info.get('debtToEquity', 0)
+        'debtToEquity': info.get('debtToEquity', 0),
+        'description': info.get('longBusinessSummary', 'No description available')
     }
 
 # Define a function to fetch data for all S&P 500 stocks
@@ -46,12 +47,13 @@ for ticker in tickers:
         info['priceToSalesTrailing12Months'],
         info['returnOnEquity'],
         info['returnOnAssets'],
-        info['debtToEquity']
+        info['debtToEquity'],
+        info['description']
     ])
 
 # Convert the data into a DataFrame
 df = pd.DataFrame(data, columns=[
-    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity'
+    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity', 'Description'
 ])
 
 # Normalize metrics
@@ -86,7 +88,7 @@ df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
 ])
 
 # Drop unnecessary columns
-df = df[['Composite Rank', 'Ticker', 'Name', 'Sector', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage']]
+df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage', 'Description']]
 
 # Reset the index to avoid an unnamed index column
 df.reset_index(drop=True, inplace=True)
@@ -113,5 +115,13 @@ selected_sector = st.selectbox("Select Sector", options=['All'] + list(df['Secto
 if selected_sector != 'All':
     df = df[df['Sector'] == selected_sector]
 
+# Add interactive feature to display company profile on click
+selected_ticker = st.selectbox("Select a Ticker to View Profile", options=df['Ticker'])
+if selected_ticker:
+    selected_row = df[df['Ticker'] == selected_ticker]
+    st.write(f"**Company Name:** {selected_row['Name'].values[0]}")
+    st.write(f"**Sector:** {selected_row['Sector'].values[0]}")
+    st.write(f"**Description:** {selected_row['Description'].values[0]}")
+    
 # Display the DataFrame
 st.write(df)
