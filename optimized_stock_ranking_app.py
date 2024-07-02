@@ -72,6 +72,13 @@ df['Volatility Score'] = df['Debt to Equity']
 # Composite score
 df['Composite Score'] = 0.3 * df['Value Score'] + 0.3 * df['Quality Score'] + 0.3 * df['Momentum Score'] + 0.1 * df['Volatility Score']
 
+# Calculate rank for each factor and composite score
+df['Value Rank'] = df['Value Score'].rank(ascending=False).astype(int)
+df['Quality Rank'] = df['Quality Score'].rank(ascending=False).astype(int)
+df['Momentum Rank'] = df['Momentum Score'].rank(ascending=False).astype(int)
+df['Volatility Rank'] = df['Volatility Score'].rank(ascending=False).astype(int)
+df['Composite Rank'] = df['Composite Score'].rank(ascending=False).astype(int)
+
 # Calculate rank in percentage terms
 df['Rank'] = df['Composite Score'].rank(pct=True)
 df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
@@ -80,22 +87,23 @@ df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
 ])
 
 # Drop unnecessary columns
-df = df[['Ticker', 'Name', 'Sector', 'Composite Score', 'Rank Percentage']]
+df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage']]
 
 # Streamlit app
-st.title("S&P 500 Stock Ranking App")
+st.title("S&P 500 Stock Ranking by Vantage Capital")
 
 st.write("""
-### Factors Explained:
+### Vantage Capital Quantitative Stock Selection Model
+
+This model is built by Vantage Capital to rank stocks in the S&P 500 index using a quantitative approach. It combines four key factors to evaluate each stock:
+
 - **Value**: Combines Price-to-Earnings (P/E) and Price-to-Book (P/B) ratios to gauge the stock's value.
 - **Quality**: Uses Return on Equity (ROE) and Return on Assets (ROA) to measure the quality of the stock.
 - **Momentum**: Reflects the stock's price momentum over a given period.
 - **Volatility**: Assesses the stock's price volatility to understand its risk.
-""")
 
-st.write("""
-### Composite Score:
-The composite score is a weighted average of the four factors (Value, Quality, Momentum, and Volatility), giving a comprehensive measure to rank stocks.
+### Composite Score
+The composite score is a weighted average of the four factors, providing a comprehensive measure to rank stocks.
 """)
 
 # Sector filter
@@ -105,8 +113,3 @@ if selected_sector != 'All':
 
 # Display the DataFrame
 st.write(df)
-
-# Allow sorting by columns
-st.write("### Sorted Stocks")
-sorted_df = st.dataframe(df.sort_values(by='Composite Score', ascending=False))
-
