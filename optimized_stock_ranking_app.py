@@ -115,13 +115,28 @@ selected_sector = st.selectbox("Select Sector", options=['All'] + list(df['Secto
 if selected_sector != 'All':
     df = df[df['Sector'] == selected_sector]
 
-# Add interactive feature to display company profile on click
-selected_ticker = st.selectbox("Select a Ticker to View Profile", options=df['Ticker'])
-if selected_ticker:
-    selected_row = df[df['Ticker'] == selected_ticker]
-    st.write(f"**Company Name:** {selected_row['Name'].values[0]}")
-    st.write(f"**Sector:** {selected_row['Sector'].values[0]}")
-    st.write(f"**Description:** {selected_row['Description'].values[0]}")
-    
+# Display the DataFrame with clickable company names
+st.write("### Stock Data")
+selected_row = st.dataframe(df.style.format({
+    'Composite Rank': '{:,.0f}',
+    'Value Rank': '{:,.0f}',
+    'Quality Rank': '{:,.0f}',
+    'Momentum Rank': '{:,.0f}',
+    'Volatility Rank': '{:,.0f}'
+}), use_container_width=True)
+
+# Add clickable links for company profiles
+for idx, row in df.iterrows():
+    st.write(f"[{row['Name']}]({row['Description']})")  # Displaying clickable name with description
+
 # Display the DataFrame
 st.write(df)
+
+# Display company profile
+if selected_row:
+    selected_ticker = selected_row['Ticker'].values[0]
+    selected_description = df[df['Ticker'] == selected_ticker]['Description'].values[0]
+    st.write(f"### Company Profile")
+    st.write(f"**Company Name:** {selected_row['Name'].values[0]}")
+    st.write(f"**Sector:** {selected_row['Sector'].values[0]}")
+    st.write(f"**Description:** {selected_description}")
