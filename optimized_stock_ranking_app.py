@@ -53,7 +53,7 @@ for ticker in tickers:
 
 # Convert the data into a DataFrame
 df = pd.DataFrame(data, columns=[
-    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity', 'Description'
+    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity', 'Business Profile'
 ])
 
 # Normalize metrics
@@ -88,7 +88,7 @@ df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
 ])
 
 # Drop unnecessary columns
-df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage', 'Description']]
+df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Rank Percentage', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Business Profile']]
 
 # Reset the index to avoid an unnamed index column
 df.reset_index(drop=True, inplace=True)
@@ -115,9 +115,9 @@ selected_sector = st.selectbox("Select Sector", options=['All'] + list(df['Secto
 if selected_sector != 'All':
     df = df[df['Sector'] == selected_sector]
 
-# Display the DataFrame
+# Display the DataFrame with default sorting by Composite Rank
 st.write("### Stock Data")
-st.dataframe(df.style.format({
+st.dataframe(df.sort_values(by='Composite Rank', ascending=True).style.format({
     'Composite Rank': '{:,.0f}',
     'Value Rank': '{:,.0f}',
     'Quality Rank': '{:,.0f}',
@@ -131,9 +131,9 @@ selected_company = st.selectbox("Select a company to view profile", df['Name'].t
 # Display company profile
 if selected_company:
     selected_data = df[df['Name'] == selected_company]
-    description = selected_data['Description'].values[0]
+    description = selected_data['Business Profile'].values[0]
     sector = selected_data['Sector'].values[0]
     st.write(f"### Company Profile")
     st.write(f"**Company Name:** {selected_company}")
     st.write(f"**Sector:** {sector}")
-    st.write(f"**Description:** {description}")
+    st.write(f"**Business Profile:** {description}")
