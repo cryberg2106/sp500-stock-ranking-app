@@ -1,102 +1,112 @@
-import yfinance as yf
 import pandas as pd
 import numpy as np
+import yfinance as yf
 import streamlit as st
 
-# URL to fetch S&P 500 stock list
-url = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv'
-s_and_p_500 = pd.read_csv(url)
+# Fetch data from Yahoo Finance
+@st.cache
+def fetch_data(ticker):
+    stock = yf.Ticker(ticker)
+    info = stock.info
+    return {
+        'longName': info.get('longName', 'N/A'),
+        'sector': info.get('sector', 'N/A'),
+        'industry': info.get('industry', 'N/A'),
+        'marketCap': info.get('marketCap', 0),
+        'trailingPE': info.get('trailingPE', 0),
+        'priceToBook': info.get('priceToBook', 0),
+        'priceToSalesTrailing12Months': info.get('priceToSalesTrailing12Months', 0),
+        'returnOnEquity': info.get('returnOnEquity', 0),
+        'returnOnAssets': info.get('returnOnAssets', 0),
+        'debtToEquity': info.get('debtToEquity', 0),
+        'sector': info.get('sector', 'N/A')
+    }
 
-# Function to fetch and calculate required metrics for multiple stocks
-def get_stock_data(tickers):
-    stocks = yf.download(tickers, period="1y")
-    data = {}
+# Define a function to fetch data for all S&P 500 stocks
+def get_sp500_tickers():
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    tables = pd.read_html(url)
+    df = tables[0]
+    return df['Symbol'].tolist(), df[['Symbol', 'Security', 'GICS Sector']]
 
-    for ticker in tickers:
-        try:
-            hist = stocks['Close'][ticker]
-            if hist.isnull().all():
-                continue
+# Fetch S&P 500 tickers
+tickers, stock_info = get_sp500_tickers()
 
-            # Calculate 12-month price change (Momentum)
-            price_change = ((hist[-1] - hist[0]) / hist[0]) * 100
+# Create an empty DataFrame to store stock data
+data = []
 
-            # Calculate standard deviation of daily returns (Volatility)
-            daily_returns = hist.pct_change().dropna()
-            volatility = daily_returns.std() * np.sqrt(252) * 100  # Annualized volatility
+# Fetch data for each stock
+for ticker in tickers:
+    info = fetch_data(ticker)
+    data.append([
+        ticker,
+        info['longName'],
+        info['sector'],
+        info['trailingPE'],
+        info['priceToBook'],
+        info['priceToSalesTrailing12Months'],
+        info['returnOnEquity'],
+        info['returnOnAssets'],
+        info['debtToEquity']
+    ])
 
-            stock_info = yf.Ticker(ticker).info
+# Convert the data into a DataFrame
+df = pd.DataFrame(data, columns=[
+    'Ticker', 'Name', 'Sector', 'P/E Ratio', 'P/B Ratio', 'P/S Ratio', 'ROE', 'ROA', 'Debt to Equity'
+])
 
-            pe_ratio = stock_info.get('trailingPE', None)
-            pb_ratio = stock_info.get('priceToBook', None)
-            ps_ratio = stock_info.get('priceToSalesTrailing12Months', None)
-            roe = stock_info.get('returnOnEquity', None)
-            roa = stock_info.get('returnOnAssets', None)
-            debt_to_equity = stock_info.get('debtToEquity', None)
+# Normalize metrics
+df['P/E Ratio'] = (df['P/E Ratio'] - df['P/E Ratio'].min()) / (df['P/E Ratio'].max() - df['P/E Ratio'].min())
+df['P/B Ratio'] = (df['P/B Ratio'] - df['P/B Ratio'].min()) / (df['P/B Ratio'].max() - df['P/B Ratio'].min())
+df['P/S Ratio'] = (df['P/S Ratio'] - df['P/S Ratio'].min()) / (df['P/S Ratio'].max() - df['P/S Ratio'].min())
+df['ROE'] = (df['ROE'] - df['ROE'].min()) / (df['ROE'].max() - df['ROE'].min())
+df['ROA'] = (df['ROA'] - df['ROA'].min()) / (df['ROA'].max() - df['ROA'].min())
+df['Debt to Equity'] = (df['Debt to Equity'] - df['Debt to Equity'].min()) / (df['Debt to Equity'].max() - df['Debt to Equity'].min())
 
-            data[ticker] = {
-                'Price_Change': price_change,
-                'Volatility': volatility,
-                'PE_Ratio': pe_ratio,
-                'PB_Ratio': pb_ratio,
-                'PS_Ratio': ps_ratio,
-                'ROE': roe,
-                'ROA': roa,
-                'Debt_to_Equity': debt_to_equity,
-            }
-        except Exception as e:
-            print(f"Error fetching data for {ticker}: {e}")
-    
-    return data
+# Calculate scores
+df['Value Score'] = 0.5 * df['P/E Ratio'] + 0.5 * df['P/B Ratio']
+df['Quality Score'] = 0.5 * df['ROE'] + 0.5 * df['ROA']
+df['Momentum Score'] = df['P/S Ratio']
+df['Volatility Score'] = df['Debt to Equity']
 
-# Function to calculate scores and rankings
-def calculate_scores(data):
-    df = pd.DataFrame(data).T
+# Composite score
+df['Composite Score'] = 0.3 * df['Value Score'] + 0.3 * df['Quality Score'] + 0.3 * df['Momentum Score'] + 0.1 * df['Volatility Score']
 
-    for metric in ['Price_Change', 'Volatility', 'PE_Ratio', 'PB_Ratio', 'PS_Ratio', 'ROE', 'ROA', 'Debt_to_Equity']:
-        df[f'{metric}_Norm'] = (df[metric] - df[metric].min()) / (df[metric].max() - df[metric].min())
+# Calculate rank in percentage terms
+df['Rank'] = df['Composite Score'].rank(pct=True)
+df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
+    'Bottom 10%', 'Bottom 20%', 'Bottom 30%', 'Bottom 40%', 'Bottom 50%',
+    'Top 50%', 'Top 40%', 'Top 30%', 'Top 20%', 'Top 10%'
+])
 
-    df['Value_Score'] = df[['PE_Ratio_Norm', 'PB_Ratio_Norm', 'PS_Ratio_Norm']].mean(axis=1)
-    df['Quality_Score'] = df[['ROE_Norm', 'ROA_Norm', 'Debt_to_Equity_Norm']].mean(axis=1)
-    df['Momentum_Score'] = df['Price_Change_Norm']
-    df['Volatility_Score'] = df['Volatility_Norm']
-
-    df['Composite_Score'] = (0.3 * df['Value_Score'] + 0.3 * df['Quality_Score'] + 0.3 * df['Momentum_Score'] + 0.1 * df['Volatility_Score'])
-    df['Rank'] = df['Composite_Score'].rank(ascending=False)
-
-    return df.sort_values(by='Rank')
+# Drop unnecessary columns
+df = df[['Ticker', 'Name', 'Sector', 'Composite Score', 'Rank Percentage']]
 
 # Streamlit app
-st.title('Vantage Capital - S&P 500 Stock Ranking')
-st.write("This ranks S&P 500 stocks based on their value, quality, momentum, and volatility metrics. Data is updated daily. A high rank indicates that a stock is rated higher on the four metrics.")
+st.title("S&P 500 Stock Ranking App")
 
-tickers = s_and_p_500['Symbol'].tolist()
-data = get_stock_data(tickers)
-df_sorted = calculate_scores(data)
+st.write("""
+### Factors Explained:
+- **Value**: Combines Price-to-Earnings (P/E) and Price-to-Book (P/B) ratios to gauge the stock's value.
+- **Quality**: Uses Return on Equity (ROE) and Return on Assets (ROA) to measure the quality of the stock.
+- **Momentum**: Reflects the stock's price momentum over a given period.
+- **Volatility**: Assesses the stock's price volatility to understand its risk.
+""")
 
-# Cache the data for 24 hours to prevent multiple fetches within a day
-@st.cache_data(ttl=86400)
-def get_cached_data():
-    return df_sorted
+st.write("""
+### Composite Score:
+The composite score is a weighted average of the four factors (Value, Quality, Momentum, and Volatility), giving a comprehensive measure to rank stocks.
+""")
 
-df_sorted = get_cached_data()
+# Sector filter
+selected_sector = st.selectbox("Select Sector", options=['All'] + list(df['Sector'].unique()))
+if selected_sector != 'All':
+    df = df[df['Sector'] == selected_sector]
 
 # Display the DataFrame
-st.dataframe(df_sorted)
+st.write(df)
 
-# Add some interactivity: Select a stock to see detailed information
-selected_stock = st.selectbox('Select a stock to see details:', df_sorted.index)
+# Allow sorting by columns
+st.write("### Sorted Stocks")
+sorted_df = st.dataframe(df.sort_values(by='Composite Score', ascending=False))
 
-if selected_stock:
-    stock = yf.Ticker(selected_stock)
-    info = stock.info
-    st.write(f"**{info['longName']} ({selected_stock})**")
-    st.write(f"**Sector:** {info['sector']}")
-    st.write(f"**Industry:** {info['industry']}")
-    st.write(f"**Market Cap:** {info['marketCap']}")
-    st.write(f"**Trailing P/E:** {info['trailingPE']}")
-    st.write(f"**Forward P/E:** {info['forwardPE']}")
-    st.write(f"**Return on Equity:** {info['returnOnEquity'] * 100:.2f}%")
-    st.write(f"**12-month Price Change:** {df_sorted.loc[df_sorted.index == selected_stock, 'Price_Change'].values[0]:.2f}%")
-    st.write(f"**Volatility:** {df_sorted.loc[df_sorted.index == selected_stock, 'Volatility'].values[0]:.2f}%")
-    st.write(f"**Composite Score:** {df_sorted.loc[df_sorted.index == selected_stock, 'Composite_Score'].values[0]:.2f}")
