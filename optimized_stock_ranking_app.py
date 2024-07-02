@@ -19,6 +19,7 @@ def fetch_data(ticker):
         'returnOnEquity': info.get('returnOnEquity', 0),
         'returnOnAssets': info.get('returnOnAssets', 0),
         'debtToEquity': info.get('debtToEquity', 0),
+        'sector': info.get('sector', 'N/A')
     }
 
 # Define a function to fetch data for all S&P 500 stocks
@@ -86,7 +87,7 @@ df['Rank Percentage'] = pd.cut(df['Rank'], bins=np.linspace(0, 1, 11), labels=[
 ])
 
 # Drop unnecessary columns
-df = df[['Composite Rank', 'Ticker', 'Name', 'Sector', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage']]
+df = df[['Ticker', 'Name', 'Sector', 'Composite Rank', 'Value Rank', 'Quality Rank', 'Momentum Rank', 'Volatility Rank', 'Rank Percentage']]
 
 # Streamlit app
 st.title("S&P 500 Stock Ranking by Vantage Capital")
