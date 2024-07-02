@@ -67,8 +67,8 @@ def calculate_scores(data):
     return df.sort_values(by='Rank')
 
 # Streamlit app
-st.title('S&P 500 Stock Ranking')
-st.write("This app ranks S&P 500 stocks based on their value, quality, momentum, and volatility metrics. Data is updated daily.")
+st.title('Vantage Capital's S&P 500 Stock Ranking')
+st.write("This ranks S&P 500 stocks based on their value, quality, momentum, and volatility metrics. Data is updated daily. A high rank indicates that a stock is rated higher on the four metrics.")
 
 tickers = s_and_p_500['Symbol'].tolist()
 data = get_stock_data(tickers)
